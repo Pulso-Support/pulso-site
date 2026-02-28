@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "minify:html": "html-minifier-terser index.html -o dist/index.html --collapse-whitespace --remove-comments --minify-css true --minify-js true",
+    "minify:css": "cleancss -o dist/css/style.min.css css/style.css",
+    "minify:js": "terser js/script.js -o dist/js/script.min.js -c -m"
   },
   "repository": {
     "type": "git",
@@ -16,5 +18,10 @@
   "bugs": {
     "url": "https://github.com/Pulso-Support/pulso-site/issues"
   },
-  "homepage": "https://github.com/Pulso-Support/pulso-site#readme"
+  "homepage": "https://github.com/Pulso-Support/pulso-site#readme",
+  "devDependencies": {
+    "clean-css-cli": "^5.6.3",
+    "html-minifier-terser": "^7.2.0",
+    "terser": "^5.46.0"
+  }
 }
