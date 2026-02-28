@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pulso — Detecte churn antes que aconteça</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=Instrument+Serif:ital@0;1&display=swap');
+
+:root {
+  --bg: #f7f5f0;
+  --ink: #0d0d0d;
+  --muted: #6b6b6b;
+  --card: #ffffff;
+  --border: #e5e2dc;
+  --lime: #c8f560;
+  --lime-dark: #9fd400;
+  --teal: #00c896;
+  --coral: #ff5c3a;
+  --blue: #5b8af0;
+  --ink-soft: #1a1a1a;
+}
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* CURSOR */
+.cursor {
+  width: 12px; height: 12px;
+  background: var(--ink);
+  border-radius: 50%;
+  position: fixed; top: 0; left: 0;
+  pointer-events: none; z-index: 9999;
+  transform: translate(-50%,-50%);
+  transition: transform 0.1s, width 0.2s, height 0.2s;
+  mix-blend-mode: multiply;
+}
+.cursor-ring {
+  width: 36px; height: 36px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  position: fixed; top: 0; left: 0;
+  pointer-events: none; z-index: 9998;
+  transform: translate(-50%,-50%);
+  transition: transform 0.15s ease-out, width 0.2s, height 0.2s, opacity 0.2s;
+  opacity: 0.4;
+}
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 0 40px; height: 64px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(247,245,240,0.88);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  transition: all 0.3s;
+}
+
+.nav-logo {
+  font-size: 1.2rem; font-weight: 900; letter-spacing: -0.5px;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.logo-pulse {
+  width: 28px; height: 20px;
+  position: relative; display: flex; align-items: center;
+}
+
+.logo-pulse svg { width: 100%; height: 100%; }
+
+.nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+.nav-links a { text-decoration: none; color: var(--muted); font-size: 0.85rem; font-weight: 500; transition: color 0.2s; }
+.nav-links a:hover { color: var(--ink); }
+
+.nav-cta { display: flex; align-items: center; gap: 12px; }
+
+.btn-ghost {
+  padding: 8px 18px; border: 1.5px solid var(--border); border-radius: 100px;
+  background: transparent; font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 0.82rem; font-weight: 700; color: var(--ink); cursor: none;
+  transition: all 0.2s; text-decoration: none;
+}
+.btn-ghost:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.btn-primary {
+  padding: 8px 20px; border: none; border-radius: 100px;
+  background: var(--ink); font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 0.82rem; font-weight: 700; color: #fff; cursor: none;
+  transition: all 0.2s; text-decoration: none;
+}
+.btn-primary:hover { background: #333; transform: translateY(-1px); }
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 120px 40px 80px;
+  position: relative; overflow: hidden;
+}
+
+.hero-grid {
+  position: absolute; inset: 0;
+  background-image: linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 60px 60px; opacity: 0.4; pointer-events: none;
+}
+
+.hero-blob {
+  position: absolute; width: 800px; height: 800px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(200,245,96,0.2) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%,-50%);
+  pointer-events: none; animation: pulse-blob 6s ease-in-out infinite;
+}
+
+@keyframes pulse-blob {
+  0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.5; }
+  50% { transform: translate(-50%,-50%) scale(1.1); opacity: 0.9; }
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: 100px; padding: 6px 16px 6px 8px;
+  font-size: 0.72rem; font-weight: 700; margin-bottom: 32px;
+  animation: fadeUp 0.6s ease both;
+}
+
+.badge-pill {
+  background: var(--lime); color: #000;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 0.65rem; font-weight: 900;
+}
+
+.hero h1 {
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  font-weight: 900; line-height: 0.95; letter-spacing: -3px;
+  max-width: 960px; margin-bottom: 28px;
+  animation: fadeUp 0.6s 0.1s ease both; position: relative;
+}
+
+.hero h1 em {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic; font-weight: 400; color: var(--muted);
+}
+
+.hero-sub {
+  font-size: 1.15rem; color: var(--muted); max-width: 560px;
+  line-height: 1.6; margin-bottom: 40px; font-weight: 400;
+  animation: fadeUp 0.6s 0.2s ease both;
+}
+
+.hero-actions {
+  display: flex; gap: 12px; align-items: center; justify-content: center;
+  flex-wrap: wrap; animation: fadeUp 0.6s 0.3s ease both;
+}
+
+.btn-hero {
+  padding: 16px 36px; border-radius: 100px;
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 0.95rem; font-weight: 800; cursor: none;
+  transition: all 0.2s; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+
+.btn-hero-main { background: var(--ink); color: #fff; border: 2px solid var(--ink); }
+.btn-hero-main:hover { background: #222; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+.btn-hero-sec { background: transparent; color: var(--ink); border: 2px solid var(--border); }
+.btn-hero-sec:hover { border-color: var(--ink); transform: translateY(-2px); }
+
+.hero-note { margin-top: 16px; font-size: 0.72rem; color: var(--muted); animation: fadeUp 0.6s 0.4s ease both; }
+
+/* HERO DASHBOARD PREVIEW */
+.hero-preview {
+  margin-top: 64px; position: relative;
+  animation: fadeUp 0.8s 0.5s ease both;
+  width: 100%; max-width: 1000px;
+}
+
+.preview-window {
+  background: var(--ink); border-radius: 16px; padding: 24px;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+.preview-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+.preview-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+.preview-tabs {
+  display: flex; gap: 4px; margin-bottom: 16px;
+}
+
+.preview-tab {
+  padding: 5px 14px; border-radius: 6px;
+  font-size: 0.6rem; font-weight: 700; cursor: pointer;
+  font-family: 'Cabinet Grotesk', sans-serif;
+  transition: all 0.2s;
+}
+
+.preview-tab.active { background: rgba(255,255,255,0.1); color: #fff; }
+.preview-tab:not(.active) { color: rgba(255,255,255,0.3); }
+
+.preview-content {
+  display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 10px; margin-bottom: 10px;
+}
+
+.preview-stat {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; padding: 14px; text-align: left;
+}
+
+.preview-stat-num { font-size: 1.6rem; font-weight: 900; line-height: 1; margin-bottom: 4px; }
+.preview-stat-label { font-size: 0.58rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 1px; }
+
+.preview-bottom { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+
+.preview-risk {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; padding: 14px;
+}
+
+.risk-header {
+  font-size: 0.58rem; color: rgba(255,255,255,0.3);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+}
+
+.risk-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.62rem;
+}
+.risk-row:last-child { border-bottom: none; }
+.risk-name { flex: 1; color: rgba(255,255,255,0.75); }
+.risk-bar-wrap { width: 100px; height: 3px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; }
+.risk-bar-fill { height: 100%; border-radius: 2px; }
+.risk-score { width: 28px; text-align: right; font-weight: 700; font-size: 0.6rem; }
+
+.preview-health {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+}
+
+.health-item { display: flex; align-items: center; justify-content: space-between; font-size: 0.62rem; }
+.health-label { color: rgba(255,255,255,0.5); }
+.health-value { font-weight: 700; }
+
+/* MARQUEE */
+.marquee-section {
+  padding: 22px 0; border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border); overflow: hidden; background: var(--card);
+}
+
+.marquee-track {
+  display: flex; gap: 48px;
+  animation: marquee 25s linear infinite;
+  white-space: nowrap; align-items: center;
+}
+
+.marquee-item {
+  font-size: 0.72rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 2px;
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+
+.marquee-item::before { content: '✦'; color: var(--lime-dark); }
+
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* SECTION BASE */
+section { padding: 100px 40px; max-width: 1200px; margin: 0 auto; }
+
+.section-label {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--muted); margin-bottom: 16px;
+}
+.section-label::before { content: ''; width: 16px; height: 2px; background: var(--lime-dark); display: block; }
+
+h2 {
+  font-size: clamp(2rem, 4vw, 3.5rem); font-weight: 900;
+  letter-spacing: -2px; line-height: 1.05; margin-bottom: 16px;
+}
+h2 em { font-family: 'Instrument Serif', serif; font-style: italic; font-weight: 400; }
+.section-sub { font-size: 1rem; color: var(--muted); max-width: 480px; line-height: 1.65; }
+
+/* MODULES ROADMAP */
+.modules-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  gap: 2px; margin-top: 60px;
+  background: var(--border); border: 2px solid var(--border);
+  border-radius: 20px; overflow: hidden;
+}
+
+.module-card {
+  background: var(--card); padding: 28px 24px;
+  position: relative; transition: background 0.2s;
+}
+
+.module-card:hover { background: var(--bg); }
+
+.module-card.active { background: var(--ink); }
+
+.module-phase {
+  font-size: 0.55rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 2px; margin-bottom: 12px;
+  padding: 3px 8px; border-radius: 100px; display: inline-block;
+}
+
+.phase-now { background: var(--lime); color: #000; }
+.phase-v2  { background: rgba(91,138,240,0.12); color: var(--blue); }
+.phase-v3  { background: rgba(0,200,150,0.1); color: var(--teal); }
+
+.module-card.active .module-phase { background: var(--lime); color: #000; }
+
+.module-icon { font-size: 1.6rem; margin-bottom: 12px; }
+
+.module-card h4 { font-size: 0.9rem; font-weight: 800; margin-bottom: 6px; }
+.module-card p  { font-size: 0.72rem; color: var(--muted); line-height: 1.5; }
+.module-card.active h4 { color: #fff; }
+.module-card.active p  { color: rgba(255,255,255,0.5); }
+
+/* HOW IT WORKS */
+.steps-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 2px; margin-top: 60px;
+  background: var(--border); border: 2px solid var(--border);
+  border-radius: 20px; overflow: hidden;
+}
+
+.step-card {
+  background: var(--card); padding: 40px 36px;
+  position: relative; transition: background 0.2s;
+}
+.step-card:hover { background: var(--bg); }
+
+.step-num {
+  font-family: 'Instrument Serif', serif; font-size: 4rem;
+  font-weight: 400; color: var(--border); line-height: 1; margin-bottom: 24px;
+}
+
+.step-card h3 { font-size: 1.2rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+.step-card p  { font-size: 0.85rem; color: var(--muted); line-height: 1.65; }
+
+.step-tag {
+  display: inline-block; margin-top: 20px; padding: 4px 12px;
+  background: var(--lime); border-radius: 100px;
+  font-size: 0.62rem; font-weight: 800; color: #000;
+}
+
+/* FEATURES */
+.features-section { padding: 100px 0; }
+.features-header { padding: 0 40px; max-width: 1200px; margin: 0 auto 60px; }
+
+.features-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2px; background: var(--border);
+  border-top: 2px solid var(--border); border-bottom: 2px solid var(--border);
+}
+
+.feature-card {
+  background: var(--card); padding: 48px;
+  transition: background 0.2s; position: relative; overflow: hidden;
+}
+.feature-card:hover { background: #fefefe; }
+
+.feature-icon {
+  width: 48px; height: 48px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; margin-bottom: 24px;
+}
+
+.feature-card h3 { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+.feature-card p  { font-size: 0.85rem; color: var(--muted); line-height: 1.7; max-width: 380px; }
+
+.feature-accent {
+  position: absolute; bottom: 0; right: 0;
+  width: 160px; height: 160px; border-radius: 50%;
+  opacity: 0.06; pointer-events: none;
+}
+
+/* METRICS TABLE */
+.metrics-table {
+  width: 100%; border-collapse: collapse;
+  margin-top: 48px; font-size: 0.85rem;
+}
+
+.metrics-table th {
+  text-align: left; padding: 12px 16px;
+  background: var(--ink); color: #fff;
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px;
+}
+
+.metrics-table th:first-child { border-radius: 10px 0 0 0; }
+.metrics-table th:last-child  { border-radius: 0 10px 0 0; }
+
+.metrics-table td {
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+
+.metrics-table tr:last-child td:first-child { border-radius: 0 0 0 10px; }
+.metrics-table tr:last-child td:last-child  { border-radius: 0 0 10px 0; }
+.metrics-table tr:last-child td { border-bottom: none; }
+
+.metrics-table tr:hover td { background: var(--bg); }
+
+.phase-chip {
+  display: inline-block; padding: 2px 10px; border-radius: 100px;
+  font-size: 0.62rem; font-weight: 800;
+}
+
+.chip-now  { background: var(--lime); color: #000; }
+.chip-v2   { background: rgba(91,138,240,0.1); color: var(--blue); }
+.chip-v3   { background: rgba(0,200,150,0.1); color: var(--teal); }
+
+/* INTEGRATIONS */
+.integrations-grid {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  justify-content: center; margin-top: 48px;
+}
+
+.integration-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 20px; background: var(--card);
+  border: 1.5px solid var(--border); border-radius: 100px;
+  font-size: 0.82rem; font-weight: 700; transition: all 0.2s;
+}
+
+.integration-chip:hover {
+  border-color: var(--ink); transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.int-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* METRICS DARK */
+.metrics-section {
+  background: var(--ink); color: #fff;
+  border-radius: 24px; padding: 80px;
+  margin: 0 40px;
+  max-width: calc(1200px - 80px);
+  margin-left: auto; margin-right: auto;
+}
+
+.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; margin-top: 60px; }
+
+.metric-num {
+  font-size: 3.5rem; font-weight: 900; letter-spacing: -3px;
+  line-height: 1; color: var(--lime); margin-bottom: 8px;
+}
+
+.metric-label { font-size: 0.8rem; color: rgba(255,255,255,0.45); line-height: 1.5; }
+
+/* PRICING */
+/* Toggle anual/mensal */
+.pricing-toggle {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-bottom: 48px;
+}
+
+.toggle-label { font-size: 0.82rem; font-weight: 700; }
+.toggle-label.muted { color: var(--muted); }
+
+.toggle-switch {
+  width: 44px; height: 24px; background: var(--border);
+  border-radius: 100px; position: relative; cursor: none;
+  transition: background 0.2s;
+}
+
+.toggle-switch.active { background: var(--ink); }
+
+.toggle-knob {
+  width: 18px; height: 18px; background: #fff;
+  border-radius: 50%; position: absolute; top: 3px; left: 3px;
+  transition: transform 0.2s; box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch.active .toggle-knob { transform: translateX(20px); }
+
+.discount-badge {
+  background: var(--lime); color: #000;
+  font-size: 0.62rem; font-weight: 900;
+  padding: 3px 8px; border-radius: 100px;
+}
+
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 0; }
+
+.pricing-card {
+  background: var(--card); border: 2px solid var(--border);
+  border-radius: 20px; padding: 36px;
+  position: relative; transition: all 0.2s;
+}
+
+.pricing-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.1); }
+
+.pricing-card.featured { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+.pricing-badge {
+  display: inline-block; background: var(--lime); color: #000;
+  font-size: 0.6rem; font-weight: 900; text-transform: uppercase;
+  letter-spacing: 1px; padding: 4px 10px; border-radius: 100px; margin-bottom: 20px;
+}
+
+.pricing-name { font-size: 1.1rem; font-weight: 800; margin-bottom: 4px; }
+.pricing-desc { font-size: 0.78rem; color: var(--muted); margin-bottom: 28px; }
+.featured .pricing-desc { color: rgba(255,255,255,0.45); }
+
+.pricing-price {
+  font-size: 3rem; font-weight: 900; letter-spacing: -2px;
+  line-height: 1; margin-bottom: 4px;
+}
+
+.pricing-price-original {
+  font-size: 1rem; color: var(--muted); text-decoration: line-through;
+  margin-bottom: 2px; font-weight: 400; min-height: 22px;
+}
+
+.featured .pricing-price-original { color: rgba(255,255,255,0.3); }
+
+.pricing-period { font-size: 0.72rem; color: var(--muted); margin-bottom: 28px; }
+.featured .pricing-period { color: rgba(255,255,255,0.4); }
+
+.pricing-divider { height: 1px; background: var(--border); margin-bottom: 24px; }
+.featured .pricing-divider { background: rgba(255,255,255,0.1); }
+
+.pricing-features {
+  list-style: none; display: flex; flex-direction: column;
+  gap: 10px; margin-bottom: 32px;
+}
+
+.pricing-features li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 0.8rem; line-height: 1.4;
+}
+
+.pricing-features li::before {
+  content: '✓'; font-weight: 900; color: var(--lime-dark);
+  flex-shrink: 0; margin-top: 1px;
+}
+
+.featured .pricing-features li::before { color: var(--lime); }
+
+.pricing-features li.locked { opacity: 0.35; }
+.pricing-features li.locked::before { content: '—'; color: var(--muted); }
+
+.btn-plan {
+  width: 100%; padding: 14px; border-radius: 100px;
+  font-family: 'Cabinet Grotesk', sans-serif; font-size: 0.85rem;
+  font-weight: 800; cursor: none; transition: all 0.2s;
+  border: 2px solid var(--border); background: transparent; color: var(--ink);
+}
+.btn-plan:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.btn-plan-featured { background: var(--lime); color: #000; border-color: var(--lime); }
+.btn-plan-featured:hover { background: var(--lime-dark); border-color: var(--lime-dark); }
+
+/* FAQ */
+.faq-list { display: flex; flex-direction: column; gap: 2px; margin-top: 48px; }
+
+.faq-item {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 0; overflow: hidden;
+}
+
+.faq-item:first-child { border-radius: 12px 12px 0 0; }
+.faq-item:last-child  { border-radius: 0 0 12px 12px; }
+
+.faq-question {
+  padding: 20px 24px; font-size: 0.92rem; font-weight: 700;
+  cursor: none; display: flex; justify-content: space-between; align-items: center;
+  transition: background 0.2s;
+}
+.faq-question:hover { background: var(--bg); }
+.faq-question::after { content: '+'; font-size: 1.2rem; color: var(--muted); }
+.faq-item.open .faq-question::after { content: '−'; }
+
+.faq-answer {
+  max-height: 0; overflow: hidden; transition: max-height 0.3s ease;
+  font-size: 0.85rem; color: var(--muted); line-height: 1.7;
+  padding: 0 24px;
+}
+.faq-item.open .faq-answer { max-height: 200px; padding: 0 24px 20px; }
+
+/* TESTIMONIALS */
+.testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 60px; }
+
+.testimonial-card {
+  background: var(--card); border: 2px solid var(--border);
+  border-radius: 16px; padding: 32px; transition: all 0.2s;
+}
+.testimonial-card:hover { border-color: var(--lime-dark); }
+
+.testimonial-stars { font-size: 0.7rem; color: var(--lime-dark); margin-bottom: 16px; letter-spacing: 2px; }
+.testimonial-text  { font-size: 0.88rem; line-height: 1.7; color: var(--ink-soft); margin-bottom: 24px; font-style: italic; }
+
+.testimonial-author { display: flex; align-items: center; gap: 12px; }
+.author-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 0.8rem; }
+.author-info    { font-size: 0.72rem; }
+.author-name    { font-weight: 800; }
+.author-role    { color: var(--muted); margin-top: 1px; }
+
+/* CTA */
+.cta-section {
+  text-align: center; padding: 120px 40px;
+  position: relative; overflow: hidden;
+}
+
+.cta-bg {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 60% 60% at 50% 50%, rgba(200,245,96,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* FOOTER */
+footer { border-top: 2px solid var(--border); padding: 60px 40px 40px; max-width: 1200px; margin: 0 auto; }
+
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 60px; }
+
+.footer-brand p { font-size: 0.8rem; color: var(--muted); line-height: 1.65; margin-top: 12px; max-width: 240px; }
+
+.footer-col h4 { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 16px; }
+.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-col a  { text-decoration: none; color: var(--muted); font-size: 0.8rem; transition: color 0.2s; }
+.footer-col a:hover { color: var(--ink); }
+
+.footer-bottom {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 24px; border-top: 1px solid var(--border);
+  font-size: 0.72rem; color: var(--muted);
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.reveal { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* MOBILE */
+@media (max-width: 768px) {
+  nav { padding: 0 20px; }
+  .nav-links { display: none; }
+  .steps-grid, .modules-grid { grid-template-columns: 1fr; }
+  .features-grid, .pricing-grid, .testimonials-grid { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .metrics-section { padding: 48px 32px; margin: 0 20px; }
+  section { padding: 60px 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <div class="logo-pulse">
+      <svg viewBox="0 0 40 28" fill="none">
+        <polyline points="0,18 10,18 14,23 20,4 26,26 30,14 40,14"
+          stroke="#0d0d0d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="20" cy="4" r="3.5" fill="#ff5c3a"/>
+      </svg>
+    </div>
+    Pulso
+    <span style="font-size:0.55rem;font-weight:500;color:var(--muted);margin-left:-4px">by Novik</span>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#como-funciona">Como funciona</a></li>
+    <li><a href="#funcionalidades">Funcionalidades</a></li>
+    <li><a href="#integracoes">Integrações</a></li>
+    <li><a href="#precos">Preços</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="#" class="btn-ghost">Entrar</a>
+    <a href="#precos" class="btn-primary">Começar grátis →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-blob"></div>
+
+  <div class="hero-badge">
+    <span class="badge-pill">RISK-FIRST</span>
+    Detecção de churn com IA para SaaS B2B
+  </div>
+
+  <h1>Detecte churn<br><em>antes que aconteça</em></h1>
+
+  <p class="hero-sub">Não é CRM. Não é pipeline. É o sistema de alerta antecipado que cruza tickets, SLAs e comportamento para te avisar quem vai cancelar — e o que fazer para impedir.</p>
+
+  <div class="hero-actions">
+    <a href="#precos" class="btn-hero btn-hero-main">Começar grátis — 14 dias ↗</a>
+    <a href="#como-funciona" class="btn-hero btn-hero-sec">Como funciona</a>
+  </div>
+
+  <p class="hero-note">Sem cartão de crédito · Conecta Movidesk e Azure DevOps em 10 min · Cancele quando quiser</p>
+
+  <div class="hero-preview">
+    <div class="preview-window">
+      <div class="preview-bar">
+        <div class="preview-dot" style="background:#ff5f57"></div>
+        <div class="preview-dot" style="background:#ffbd2e"></div>
+        <div class="preview-dot" style="background:#28ca41"></div>
+        <span style="font-size:0.6rem;color:rgba(255,255,255,0.25);margin-left:8px;font-family:'Cabinet Grotesk',sans-serif">Pulso — Painel de Risco</span>
+      </div>
+
+      <div class="preview-tabs">
+        <div class="preview-tab active">Risco & Alertas</div>
+        <div class="preview-tab">Health Score</div>
+        <div class="preview-tab">Customer 360</div>
+        <div class="preview-tab">Tarefas</div>
+      </div>
+
+      <div class="preview-content">
+        <div class="preview-stat">
+          <div class="preview-stat-num" style="color:#c8f560">94</div>
+          <div class="preview-stat-label">clientes ativos</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-num" style="color:#ff5c3a">9</div>
+          <div class="preview-stat-label">risco crítico</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-num" style="color:#00c896">R$142k</div>
+          <div class="preview-stat-label">MRR total</div>
+        </div>
+        <div class="preview-stat">
+          <div class="preview-stat-num" style="color:#5b8af0">76%</div>
+          <div class="preview-stat-label">health médio</div>
+        </div>
+      </div>
+
+      <div class="preview-bottom">
+        <div class="preview-risk">
+          <div class="risk-header">Clientes em risco — ação imediata</div>
+          <div class="risk-row">
+            <div class="risk-name">Acme Corp</div>
+            <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:92%;background:#ff5c3a"></div></div>
+            <div class="risk-score" style="color:#ff5c3a">92</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-name">TechBrasil</div>
+            <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:74%;background:#f0a030"></div></div>
+            <div class="risk-score" style="color:#f0a030">74</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-name">StartupXYZ</div>
+            <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:38%;background:#c8f560"></div></div>
+            <div class="risk-score" style="color:#c8f560">38</div>
+          </div>
+          <div class="risk-row">
+            <div class="risk-name">Empresa ABC</div>
+            <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:21%;background:#00c896"></div></div>
+            <div class="risk-score" style="color:#00c896">21</div>
+          </div>
+        </div>
+
+        <div class="preview-health">
+          <div class="risk-header">Health Score</div>
+          <div class="health-item">
+            <span class="health-label">Engajamento</span>
+            <span class="health-value" style="color:#c8f560">Alto</span>
+          </div>
+          <div class="health-item">
+            <span class="health-label">Tickets abertos</span>
+            <span class="health-value" style="color:#f0a030">Médio</span>
+          </div>
+          <div class="health-item">
+            <span class="health-label">SLA atingido</span>
+            <span class="health-value" style="color:#00c896">94%</span>
+          </div>
+          <div class="health-item">
+            <span class="health-label">NPS médio</span>
+            <span class="health-value" style="color:#5b8af0">+42</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track">
+    <span class="marquee-item">Detecção de Churn</span>
+    <span class="marquee-item">Score de Risco</span>
+    <span class="marquee-item">Alertas em Tempo Real</span>
+    <span class="marquee-item">Customer 360</span>
+    <span class="marquee-item">Health Score</span>
+    <span class="marquee-item">Movidesk</span>
+    <span class="marquee-item">Azure DevOps</span>
+    <span class="marquee-item">IA Conversacional</span>
+    <span class="marquee-item">Ação Sugerida</span>
+    <span class="marquee-item">Detecção de Churn</span>
+    <span class="marquee-item">Score de Risco</span>
+    <span class="marquee-item">Alertas em Tempo Real</span>
+    <span class="marquee-item">Customer 360</span>
+    <span class="marquee-item">Health Score</span>
+    <span class="marquee-item">Movidesk</span>
+    <span class="marquee-item">Azure DevOps</span>
+    <span class="marquee-item">IA Conversacional</span>
+    <span class="marquee-item">Ação Sugerida</span>
+  </div>
+</div>
+
+<!-- PLATAFORMA — MÓDULOS -->
+<section id="plataforma">
+  <div class="section-label">A Plataforma</div>
+  <h2>Detecção. Diagnóstico.<br><em>Ação sugerida.</em></h2>
+  <p class="section-sub">Três passos. Um objetivo: nunca mais ser pego de surpresa por um cancelamento. O Pulso monitora, diagnostica e te diz exatamente o que fazer.</p>
+
+  <div class="modules-grid reveal">
+    <div class="module-card active">
+      <div class="module-phase phase-now">MVP</div>
+      <div class="module-icon">🎯</div>
+      <h4>Score de Risco</h4>
+      <p>Detecção automática de churn a partir de tickets, SLAs e recorrência. Alertas em tempo real.</p>
+    </div>
+    <div class="module-card active">
+      <div class="module-phase phase-now">MVP</div>
+      <div class="module-icon">👤</div>
+      <h4>Customer 360</h4>
+      <p>Ficha completa de cada cliente: score, contatos, timeline, contrato e notas. Tudo num lugar só.</p>
+    </div>
+    <div class="module-card active">
+      <div class="module-phase phase-now">MVP</div>
+      <div class="module-icon">💚</div>
+      <h4>Health Score</h4>
+      <p>Score configurável por dimensões com pesos ajustáveis. Cada empresa define o que importa.</p>
+    </div>
+    <div class="module-card">
+      <div class="module-phase phase-v2">V2</div>
+      <div class="module-icon">🤖</div>
+      <h4>Agente IA</h4>
+      <p>Pergunte em português: "quem vai cancelar?" e receba resposta com dados reais e ação sugerida.</p>
+    </div>
+    <div class="module-card">
+      <div class="module-phase phase-v2">V2</div>
+      <div class="module-icon">📈</div>
+      <h4>Expansão</h4>
+      <p>Identifica sinais de upsell e o momento certo de abordar. QBR automático com IA.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="como-funciona">
+  <div class="section-label">Como funciona</div>
+  <h2>Do dado bruto ao<br><em>"ligue para esse cliente agora"</em></h2>
+  <p class="section-sub">Conecte suas ferramentas. O Pulso detecta o risco, diagnostica a causa e sugere a ação — sem planilha, sem adivinhação.</p>
+
+  <div class="steps-grid reveal">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <h3>Conecte em 10 minutos</h3>
+      <p>Cole o token do Azure DevOps ou Movidesk. O Pulso começa a puxar tickets, SLAs e histórico automaticamente. Zero código.</p>
+      <span class="step-tag">Detecção</span>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <h3>Risco calculado 24/7</h3>
+      <p>O motor cruza volume de tickets, SLAs violados, recorrência de problemas e gera um score de risco por cliente — atualizado continuamente.</p>
+      <span class="step-tag">Diagnóstico</span>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <h3>Aja antes do cancelamento</h3>
+      <p>Alerta no Slack, email ou WhatsApp quando um cliente entra em zona de risco. Com o motivo do risco e a ação sugerida incluídos.</p>
+      <span class="step-tag">Ação</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div class="features-section" id="funcionalidades">
+  <div class="features-header">
+    <div class="section-label">Funcionalidades</div>
+    <h2>Tudo que o CSM precisa<br>para <em>nunca mais ser surpreendido</em></h2>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(200,245,96,0.15)">🎯</div>
+      <h3>Score de Risco Automático</h3>
+      <p>Cruza volume de tickets, SLAs violados, recorrência de problemas e sentimento para gerar um número único por cliente. Sem adivinhação, sem planilha.</p>
+      <div class="feature-accent" style="background:var(--lime)"></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(0,200,150,0.1)">👤</div>
+      <h3>Customer 360</h3>
+      <p>Uma ficha por cliente com tudo: health score, contatos, timeline de atividades, contrato, notas e tickets recentes. O contexto completo em 2 cliques.</p>
+      <div class="feature-accent" style="background:var(--teal)"></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(255,92,58,0.1)">⚡</div>
+      <h3>Alertas com Ação Sugerida</h3>
+      <p>Quando um cliente entra em zona de risco, você recebe o alerta no Slack, email ou WhatsApp — junto com o diagnóstico e o que fazer para impedir o churn.</p>
+      <div class="feature-accent" style="background:var(--coral)"></div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon" style="background:rgba(91,138,240,0.1)">💚</div>
+      <h3>Health Score Configurável</h3>
+      <p>Defina os pesos que fazem sentido para o seu negócio: tickets, SLA, engajamento, pagamentos, NPS. O score se adapta à sua empresa, não o contrário.</p>
+      <div class="feature-accent" style="background:#5b8af0"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MÉTRICAS -->
+<section id="metricas">
+  <div class="section-label">Métricas monitoradas</div>
+  <h2>Os sinais de churn<br><em>que você não vê hoje</em></h2>
+  <p class="section-sub">O Pulso transforma dados que já existem nas suas ferramentas em scores de risco acionáveis. Sem instalação de SDK, sem código no seu produto.</p>
+
+  <table class="metrics-table reveal">
+    <thead>
+      <tr>
+        <th>Métrica</th>
+        <th>Fonte</th>
+        <th>O que indica</th>
+        <th>Disponível</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tickets últimos 30/60/90 dias</strong></td>
+        <td>Azure · Movidesk</td>
+        <td>Volume de fricção do cliente</td>
+        <td><span class="phase-chip chip-now">Agora</span></td>
+      </tr>
+      <tr>
+        <td><strong>SLAs violados por cliente</strong></td>
+        <td>Azure · Movidesk</td>
+        <td>Insatisfação acumulada</td>
+        <td><span class="phase-chip chip-now">Agora</span></td>
+      </tr>
+      <tr>
+        <td><strong>Recorrência de problemas</strong></td>
+        <td>Todos os tickets</td>
+        <td>Bugs não resolvidos na raiz</td>
+        <td><span class="phase-chip chip-now">Agora</span></td>
+      </tr>
+      <tr>
+        <td><strong>Análise de sentimento</strong></td>
+        <td>WhatsApp · Tickets</td>
+        <td>Frustração nas mensagens</td>
+        <td><span class="phase-chip chip-now">Agora</span></td>
+      </tr>
+      <tr>
+        <td><strong>NPS e CSAT</strong></td>
+        <td>Formulários integrados</td>
+        <td>Satisfação declarada</td>
+        <td><span class="phase-chip chip-v2">V2</span></td>
+      </tr>
+      <tr>
+        <td><strong>Engajamento com o produto</strong></td>
+        <td>API do produto cliente</td>
+        <td>Uso ativo x abandonado</td>
+        <td><span class="phase-chip chip-v2">V2</span></td>
+      </tr>
+      <tr>
+        <td><strong>Histórico de pagamentos</strong></td>
+        <td>ERP · Omie · Stripe</td>
+        <td>Saúde financeira do contrato</td>
+        <td><span class="phase-chip chip-v2">V2</span></td>
+      </tr>
+      <tr>
+        <td><strong>Probabilidade de expansão</strong></td>
+        <td>IA preditiva</td>
+        <td>Clientes prontos para upsell</td>
+        <td><span class="phase-chip chip-v3">V3</span></td>
+      </tr>
+      <tr>
+        <td><strong>ROI do CS automatizado</strong></td>
+        <td>Pulso interno</td>
+        <td>Valor gerado pela plataforma</td>
+        <td><span class="phase-chip chip-v3">V3</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- INTEGRATIONS -->
+<section id="integracoes" style="text-align:center">
+  <div class="section-label" style="justify-content:center">Integrações</div>
+  <h2>Conecta com as ferramentas<br>que você <em>já usa</em></h2>
+  <p class="section-sub" style="margin:0 auto">Sem migração de dados, sem mudança de processo.</p>
+  <div class="integrations-grid reveal">
+    <div class="integration-chip"><div class="int-dot" style="background:#0078d4"></div>Azure DevOps</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#6c5ce7"></div>Movidesk</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#25d366"></div>WhatsApp Business</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#4a154b"></div>Slack</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#ea4335"></div>Gmail</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#0061ff"></div>Zenvia</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#ff7a59"></div>HubSpot</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#172b4d"></div>Jira</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#f5a623"></div>Omie</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#00b37e"></div>Tallos</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#635bff"></div>Stripe</div>
+    <div class="integration-chip"><div class="int-dot" style="background:#000"></div>+ API própria</div>
+  </div>
+</section>
+
+<!-- NUMBERS -->
+<div style="padding:0 0 100px">
+  <div class="metrics-section reveal">
+    <div class="section-label" style="color:rgba(255,255,255,0.35)">Por que Risk-first?</div>
+    <h2 style="color:#fff;max-width:500px">O custo de<br><em>não monitorar</em></h2>
+    <div class="metrics-grid">
+      <div>
+        <div class="metric-num">67%</div>
+        <div class="metric-label">dos churns poderiam ser evitados com detecção antecipada de risco*</div>
+      </div>
+      <div>
+        <div class="metric-num">5-25x</div>
+        <div class="metric-label">mais caro adquirir um novo cliente do que reter um existente</div>
+      </div>
+      <div>
+        <div class="metric-num">10min</div>
+        <div class="metric-label">para conectar suas fontes e começar a receber os primeiros scores</div>
+      </div>
+      <div>
+        <div class="metric-num">24/7</div>
+        <div class="metric-label">monitoramento contínuo — o Pulso nunca dorme, sua planilha sim</div>
+      </div>
+    </div>
+    <p style="margin-top:32px;font-size:0.6rem;color:rgba(255,255,255,0.2)">* Baseado em estudos de mercado de Customer Success (Gainsight, Totango, ChurnZero)</p>
+  </div>
+</div>
+
+<!-- PRICING -->
+<section id="precos" style="text-align:center">
+  <div class="section-label" style="justify-content:center">Preços</div>
+  <h2>Simples, transparente,<br><em>sem surpresa</em></h2>
+  <p class="section-sub" style="margin:0 auto 40px">Comece de graça. Pague só quando o Pulso já estiver te salvando clientes.</p>
+
+  <!-- Toggle -->
+  <div class="pricing-toggle">
+    <span class="toggle-label muted">Mensal</span>
+    <div class="toggle-switch" id="billing-toggle" onclick="toggleBilling()">
+      <div class="toggle-knob"></div>
+    </div>
+    <span class="toggle-label">Anual</span>
+    <span class="discount-badge">2 meses grátis</span>
+  </div>
+
+  <div class="pricing-grid reveal">
+    <!-- FREE -->
+    <div class="pricing-card">
+      <div class="pricing-name">Grátis</div>
+      <div class="pricing-desc">Para começar a detectar risco de churn</div>
+      <div class="pricing-price-original" id="free-original"></div>
+      <div class="pricing-price">R$0</div>
+      <div class="pricing-period">para sempre · até 10 clientes</div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li>Até 10 clientes monitorados</li>
+        <li>1 integração (Azure ou Movidesk)</li>
+        <li>Score de risco básico</li>
+        <li>Customer 360 por cliente</li>
+        <li>Alertas por email</li>
+        <li>Dashboard com 7 dias de histórico</li>
+        <li class="locked">Health Score configurável</li>
+        <li class="locked">Alertas Slack + WhatsApp</li>
+      </ul>
+      <button class="btn-plan">Começar grátis</button>
+    </div>
+
+    <!-- PRO -->
+    <div class="pricing-card featured">
+      <div class="pricing-badge">Mais popular</div>
+      <div class="pricing-name">Pro</div>
+      <div class="pricing-desc">Para equipes que levam CS a sério</div>
+      <div class="pricing-price-original" id="pro-original"></div>
+      <div class="pricing-price" id="pro-price">R$797</div>
+      <div class="pricing-period" id="pro-period">/mês · até 150 clientes</div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li>Até 150 clientes monitorados</li>
+        <li>Todas as integrações incluídas</li>
+        <li>Score de risco avançado</li>
+        <li>Health Score configurável</li>
+        <li>Customer 360 completo + Timeline</li>
+        <li>Alertas Slack + WhatsApp + email</li>
+        <li>Segmentação e filtros avançados</li>
+        <li>Tarefas e playbooks básicos</li>
+        <li>Histórico completo + exportação CSV</li>
+      </ul>
+      <button class="btn-plan btn-plan-featured">Testar 14 dias grátis</button>
+    </div>
+
+    <!-- ENTERPRISE -->
+    <div class="pricing-card">
+      <div class="pricing-name">Enterprise</div>
+      <div class="pricing-desc">Para operações de CS em escala</div>
+      <div class="pricing-price-original" id="ent-original"></div>
+      <div class="pricing-price" id="ent-price">R$1.997</div>
+      <div class="pricing-period" id="ent-period">/mês · clientes ilimitados</div>
+      <div class="pricing-divider"></div>
+      <ul class="pricing-features">
+        <li>Clientes ilimitados</li>
+        <li>Todas as integrações + API própria</li>
+        <li>Agente IA conversacional em português</li>
+        <li>QBR automático com IA</li>
+        <li>Renewal tracker + pipeline de renovações</li>
+        <li>Análise de sentimento</li>
+        <li>SLA de resposta garantido</li>
+        <li>Onboarding assistido + SSO</li>
+      </ul>
+      <button class="btn-plan">Falar com vendas →</button>
+    </div>
+  </div>
+
+  <!-- COMPARISON NOTE -->
+  <p style="margin-top:24px;font-size:0.75rem;color:var(--muted)">
+    Todos os planos incluem criptografia de dados, backups automáticos e conformidade com LGPD.
+  </p>
+</section>
+
+<!-- FAQ -->
+<section style="max-width:720px;margin:0 auto;padding:0 40px 100px">
+  <div class="section-label">Perguntas frequentes</div>
+  <h2>Ainda tem <em>dúvidas?</em></h2>
+
+  <div class="faq-list reveal">
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">Preciso trocar minha ferramenta de suporte atual?</div>
+      <div class="faq-answer">Não. O Pulso se conecta ao Movidesk, Azure DevOps, Slack e WhatsApp que você já usa. Ele não substitui nada — ele monitora o risco de churn a partir dos dados que já existem nas suas ferramentas.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">Quanto tempo leva para ver os primeiros resultados?</div>
+      <div class="faq-answer">10 minutos para conectar. Com 7 dias de dados históricos você já recebe os primeiros scores de risco e alertas. Sem configuração complexa, sem consultoria de implementação.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">Como o score de risco é calculado?</div>
+      <div class="faq-answer">O motor cruza volume de tickets, SLAs violados, recorrência de problemas e tempo sem interação. No plano Pro, você configura os pesos de cada dimensão. O score é recalculado continuamente, 24/7.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">Meus dados ficam seguros?</div>
+      <div class="faq-answer">Sim. Dados criptografados em trânsito e em repouso. Credenciais de integração nunca armazenadas em texto puro. Conformidade total com LGPD. Backups diários automáticos.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">O plano gratuito tem limite de tempo?</div>
+      <div class="faq-answer">Não, é grátis para sempre até 10 clientes. Sem cartão de crédito. Faça upgrade para o Pro quando precisar de mais clientes ou Health Score configurável.</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section>
+  <div class="section-label">Depoimentos</div>
+  <h2>Quem monitora risco<br><em>não volta pra planilha</em></h2>
+  <div class="testimonials-grid reveal">
+    <div class="testimonial-card">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"A gente vivia apagando incêndio. Com o Pulso passamos a ver fumaça antes do fogo. Retivemos 3 clientes no primeiro mês."</p>
+      <div class="testimonial-author">
+        <div class="author-avatar" style="background:var(--lime)">RS</div>
+        <div class="author-info">
+          <div class="author-name">Rafael Silva</div>
+          <div class="author-role">Head of CS · FinTech SP</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"Conectou no Movidesk em 10 minutos. Na semana seguinte já tínhamos scores de risco por cliente e alertas no Slack. Antes disso era planilha e achismo."</p>
+      <div class="testimonial-author">
+        <div class="author-avatar" style="background:#5b8af0;color:#fff">MO</div>
+        <div class="author-info">
+          <div class="author-name">Marina Oliveira</div>
+          <div class="author-role">COO · SaaS B2B</div>
+        </div>
+      </div>
+    </div>
+    <div class="testimonial-card">
+      <div class="testimonial-stars">★★★★★</div>
+      <p class="testimonial-text">"O Customer 360 mudou nosso jogo. Antes, cada CSM tinha uma planilha diferente. Agora todo mundo vê o mesmo score, a mesma timeline, os mesmos riscos."</p>
+      <div class="testimonial-author">
+        <div class="author-avatar" style="background:var(--coral);color:#fff">CP</div>
+        <div class="author-info">
+          <div class="author-name">Carlos Pereira</div>
+          <div class="author-role">CEO · Startup BH</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <div class="cta-bg"></div>
+  <div class="section-label" style="justify-content:center">Pronto para começar?</div>
+  <h2 style="font-size:clamp(2.5rem,5vw,5rem)">Pare de perder clientes<br><em>que você podia salvar</em></h2>
+  <p style="color:var(--muted);font-size:1rem;margin:20px auto 40px;max-width:440px;line-height:1.65">Cada dia sem monitoramento de risco é um cliente que vai embora sem você perceber. Conecte suas fontes e veja quem precisa de atenção agora.</p>
+  <div class="hero-actions">
+    <a href="#" class="btn-hero btn-hero-main">Começar grátis agora ↗</a>
+    <a href="#" class="btn-hero btn-hero-sec">Agendar demo</a>
+  </div>
+  <p class="hero-note" style="margin-top:20px">Sem cartão · 14 dias grátis no Pro · Cancele quando quiser</p>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div class="footer-brand">
+      <div class="nav-logo" style="font-size:1.1rem">
+        <div class="logo-pulse" style="width:24px;height:18px">
+          <svg viewBox="0 0 40 28" fill="none">
+            <polyline points="0,18 10,18 14,23 20,4 26,26 30,14 40,14"
+              stroke="#0d0d0d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="20" cy="4" r="3.5" fill="#ff5c3a"/>
+          </svg>
+        </div>
+        Pulso
+        <span style="font-size:0.5rem;font-weight:500;color:var(--muted)">by Novik</span>
+      </div>
+      <p>Detecção de churn com IA para SaaS B2B. Feito no Brasil.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Produto</h4>
+      <ul>
+        <li><a href="#">Funcionalidades</a></li>
+        <li><a href="#">Módulos</a></li>
+        <li><a href="#">Integrações</a></li>
+        <li><a href="#">Preços</a></li>
+        <li><a href="#">Roadmap</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Empresa</h4>
+      <ul>
+        <li><a href="#">Sobre a Novik</a></li>
+        <li><a href="#">Blog</a></li>
+        <li><a href="#">Carreiras</a></li>
+        <li><a href="#">Contato</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="#">Termos de uso</a></li>
+        <li><a href="#">Privacidade</a></li>
+        <li><a href="#">LGPD</a></li>
+        <li><a href="#">Segurança</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 Novik · Pulso. Todos os direitos reservados.</span>
+    <span>Feito no Brasil 🇧🇷 com Go + PostgreSQL</span>
+  </div>
+</footer>
+
+<script>
+// CURSOR
+const cursor = document.getElementById('cursor');
+const ring   = document.getElementById('cursor-ring');
+let mx=0, my=0, rx=0, ry=0;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursor.style.left = mx + 'px';
+  cursor.style.top  = my + 'px';
+});
+
+(function animRing() {
+  rx += (mx-rx)*0.12; ry += (my-ry)*0.12;
+  ring.style.left = rx+'px'; ring.style.top = ry+'px';
+  requestAnimationFrame(animRing);
+})();
+
+document.querySelectorAll('a,button,.faq-question,.toggle-switch').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    cursor.style.width='6px'; cursor.style.height='6px';
+    ring.style.width='52px'; ring.style.height='52px'; ring.style.opacity='0.2';
+  });
+  el.addEventListener('mouseleave', () => {
+    cursor.style.width='12px'; cursor.style.height='12px';
+    ring.style.width='36px'; ring.style.height='36px'; ring.style.opacity='0.4';
+  });
+});
+
+// SCROLL REVEAL
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// NAV SCROLL
+window.addEventListener('scroll', () => {
+  document.querySelector('nav').style.borderBottomColor = window.scrollY > 50 ? '#ccc' : 'var(--border)';
+});
+
+// FAQ
+function toggleFaq(item) {
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+
+// PRICING TOGGLE
+let isAnnual = false;
+
+const prices = {
+  pro: { monthly: 'R$797', annual: 'R$664', monthlyOrig: '', annualOrig: 'R$797' },
+  ent: { monthly: 'R$1.997', annual: 'R$1.664', monthlyOrig: '', annualOrig: 'R$1.997' },
+};
+
+function toggleBilling() {
+  isAnnual = !isAnnual;
+  const toggle = document.getElementById('billing-toggle');
+  toggle.classList.toggle('active', isAnnual);
+
+  document.getElementById('pro-price').textContent    = isAnnual ? prices.pro.annual    : prices.pro.monthly;
+  document.getElementById('pro-original').textContent = isAnnual ? prices.pro.annualOrig : '';
+  document.getElementById('pro-period').textContent   = isAnnual ? '/mês cobrado anualmente · até 150 clientes' : '/mês · até 150 clientes';
+
+  document.getElementById('ent-price').textContent    = isAnnual ? prices.ent.annual    : prices.ent.monthly;
+  document.getElementById('ent-original').textContent = isAnnual ? prices.ent.annualOrig : '';
+  document.getElementById('ent-period').textContent   = isAnnual ? '/mês cobrado anualmente · ilimitado' : '/mês · clientes ilimitados';
+}
+</script>
+</body>
+</html>
